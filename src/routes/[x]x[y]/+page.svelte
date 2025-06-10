@@ -158,6 +158,7 @@
   }
 
   const resizeCanvas = () => {
+    if (!canvas) return
     const container = canvas.parentElement
     horizontal = window.innerWidth / window.innerHeight > ratio
     if (!container) return
@@ -194,6 +195,7 @@
     // requestAnimationFrame(() => resizeCanvas())
     const resizeObserver = new ResizeObserver(() => resizeCanvas())
     resizeObserver.observe(canvas.parentElement!)
+    let indexChannel = connect('ink:index')
 
     channel = connect(`art-tag:${x}x${y}`, { announce: true })
       .on<{ type: 'paint', data: [number, number, number, number] }>('message', ({ message }) =>
@@ -245,8 +247,14 @@
       // @ts-ignore
       window.setColor = setPaintColor
 
+    let heartbeat = setInterval(() => {
+      indexChannel?.send([`${x}x${y}`, channelUsers])
+    }, 500)
+
     return () => {
       channel?.close()
+      indexChannel.close()
+      clearInterval(heartbeat)
     }
   })
 </script>
