@@ -1,8 +1,11 @@
 html, body {
+  height: 100%;
   margin: 0;
   padding: 0;
-  height: 100vh;
   font-family: sans-serif;
+  overscroll-behavior: none;
+  touch-action: none;
+  overflow: hidden;
 
   --accent-color: #f0c;
 }

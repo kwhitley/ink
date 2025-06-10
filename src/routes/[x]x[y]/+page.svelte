@@ -176,14 +176,22 @@
     const displayHeight = cellSize * y
 
     // Ensure at least one axis fills the space completely
-    canvas.style.width = fillByWidth ? `${width}px` : `${displayWidth}px`
-    canvas.style.height = fillByWidth ? `${displayHeight}px` : `${height}px`
+    // canvas.style.width = fillByWidth ? `${width}px` : `${displayWidth}px`
+    // canvas.style.height = fillByWidth ? `${displayHeight}px` : `${height}px`
 
-    // Scale the actual canvas resolution
-    canvas.width = parseFloat(canvas.style.width) * dpr
-    canvas.height = parseFloat(canvas.style.height) * dpr
+    // // Scale the actual canvas resolution
+    // canvas.width = parseFloat(canvas.style.width) * dpr
+    // canvas.height = parseFloat(canvas.style.height) * dpr
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    // ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+    canvas.style.width = `${displayWidth}px`
+    canvas.style.height = `${displayHeight}px`
+    canvas.width = Math.floor(displayWidth * dpr)
+    canvas.height = Math.floor(displayHeight * dpr)
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.scale(dpr, dpr)
+
     drawAll()
   }
 
@@ -275,6 +283,9 @@
     <canvas
       bind:this={canvas}
       on:mousemove={handleMouseMove}
+      on:touchstart|preventDefault={handleMouseMove}
+      on:touchmove|preventDefault={handleMouseMove}
+      on:touchend|preventDefault={handleMouseUp}
       />
   </div>
   <div class="extra" />
