@@ -185,12 +185,18 @@
 
     // ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
+
     canvas.style.width = `${displayWidth}px`
     canvas.style.height = `${displayHeight}px`
     canvas.width = Math.floor(displayWidth * dpr)
     canvas.height = Math.floor(displayHeight * dpr)
+
+
+    console.log('DPR:', window.devicePixelRatio)
+    console.log('Canvas size:', canvas.width, canvas.height)
+
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    ctx.scale(dpr, dpr)
+    // ctx.scale(dpr, dpr)
 
     drawAll()
   }
@@ -286,7 +292,7 @@
       on:touchstart|preventDefault={handleMouseMove}
       on:touchmove|preventDefault={handleMouseMove}
       on:touchend|preventDefault={handleMouseUp}
-      />
+      ></canvas>
   </div>
   <div class="extra" />
 </div>
@@ -298,12 +304,12 @@
 <style>
   .grid {
     height: 100vh;
+    height: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     /* align-items: center; */
     /* justify-content: center; */
-    gap: 1rem;
     flex-wrap: wrap;
   }
 
@@ -317,10 +323,12 @@
     align-items: flex-end;
     padding: 1rem;
     flex: 0.2;
+    /* background-color: pink; */
     /* min-height: 7rem; */
   }
 
   .canvas-wrapper {
+    /* background-color: cyan; */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -328,18 +336,18 @@
     max-height: 100%;
     aspect-ratio: auto;
     align-items: center;
+    position: relative;
     flex: 5;
     /* margin: auto 0; */
   }
 
   .canvas-wrapper canvas {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 
-    margin-bottom: auto;
+    object-fit: contain;
   }
 
   @media (min-aspect-ratio: 1.05/1) {

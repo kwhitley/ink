@@ -96,7 +96,9 @@
     if (!container) return
 
     const { width, height } = container.getBoundingClientRect()
-    console.log({ width, height })
+    console.log('DPR:', window.devicePixelRatio)
+    console.log('Canvas size:', canvas.width, canvas.height)
+
     const dpr = window.devicePixelRatio || 1
 
     const rawCellWidth = width / x
