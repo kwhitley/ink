@@ -34,17 +34,20 @@
     colors[i + 1] !== g ||
     colors[i + 2] !== b
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent & TouchEvent) => {
     if (!mouseDown || isColorPickerOpen) return
     const rect = canvas.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const py = e.clientY - rect.top
+    const px = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left
+    const py = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top
+
+    // console.log('mouse move', px, py)
     const index = getIndexFromCoords(px, py)
     if (index !== -1) paint(index)
   }
 
   const handleMouseDown = (e: MouseEvent) => {
     mouseDown = true
+    // console.log('mouse down', e)
     handleMouseMove(e)
   }
 
@@ -202,7 +205,6 @@
   }
 
 
-
   onMount(() => {
     ctx = canvas.getContext('2d')!
     colors.fill(255) // all white
@@ -289,7 +291,7 @@
     <canvas
       bind:this={canvas}
       on:mousemove={handleMouseMove}
-      on:touchstart|preventDefault={handleMouseMove}
+      on:touchstart|preventDefault={handleMouseDown}
       on:touchmove|preventDefault={handleMouseMove}
       on:touchend|preventDefault={handleMouseUp}
       ></canvas>
