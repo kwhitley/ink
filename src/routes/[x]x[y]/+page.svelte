@@ -17,7 +17,9 @@
   let mouseDown = false
   let paintColor: [number, number, number, number] = [0, 0, 0, 1]
   let canvas: HTMLCanvasElement
+  let gridCanvas: HTMLCanvasElement
   let ctx: CanvasRenderingContext2D
+  let gridCtx: CanvasRenderingContext2D
   let colors = new Uint8ClampedArray(x * y * 4)
   let fetched = false
   let channel: IttySocket | undefined = undefined
@@ -119,6 +121,31 @@
     }
   }
 
+  $: {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore
+      window.paint = paint
+      // @ts-ignore
+      window.getColor = (index: number) => {
+        const i = index * 4
+        return {
+          r: colors[i],
+          g: colors[i + 1],
+          b: colors[i + 2],
+        }
+      }
+
+      // expose x and y to the window
+      // @ts-ignore
+      window.x = x
+      // @ts-ignore
+      window.y = y
+
+      // @ts-ignore
+      window.setColor = setPaintColor
+    }
+  }
+
   const drawCell = (index: number) => {
     const cellWidth = canvas.width / x
     const cellHeight = canvas.height / y
@@ -127,11 +154,21 @@
     const i = index * 4
     ctx.fillStyle = `rgb(${colors[i]},${colors[i + 1]},${colors[i + 2]})`
     ctx.fillRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
+  }
 
-    if (grid > 0) {
-      ctx.strokeStyle = `rgba(${gridColor.join(',')})`
-      ctx.lineWidth = grid
-      ctx.strokeRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
+  const drawGrid = () => {
+    if (!gridCanvas || !gridCtx) return
+    const cellWidth = gridCanvas.width / x
+    const cellHeight = gridCanvas.height / y
+
+    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height)
+    gridCtx.strokeStyle = `rgba(${gridColor.join(',')})`
+    gridCtx.lineWidth = grid
+
+    for (let cx = 0; cx < x; cx++) {
+      for (let cy = 0; cy < y; cy++) {
+        gridCtx.strokeRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
+      }
     }
   }
 
@@ -161,7 +198,7 @@
   }
 
   const resizeCanvas = () => {
-    if (!canvas) return
+    if (!canvas || !gridCanvas) return
     const container = canvas.parentElement
     horizontal = window.innerWidth / window.innerHeight > ratio
     if (!container) return
@@ -178,35 +215,27 @@
     const displayWidth = cellSize * x
     const displayHeight = cellSize * y
 
-    // Ensure at least one axis fills the space completely
-    // canvas.style.width = fillByWidth ? `${width}px` : `${displayWidth}px`
-    // canvas.style.height = fillByWidth ? `${displayHeight}px` : `${height}px`
-
-    // // Scale the actual canvas resolution
-    // canvas.width = parseFloat(canvas.style.width) * dpr
-    // canvas.height = parseFloat(canvas.style.height) * dpr
-
-    // ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-
     canvas.style.width = `${displayWidth}px`
     canvas.style.height = `${displayHeight}px`
     canvas.width = Math.floor(displayWidth * dpr)
     canvas.height = Math.floor(displayHeight * dpr)
 
-
-    console.log('DPR:', window.devicePixelRatio)
-    console.log('Canvas size:', canvas.width, canvas.height)
+    gridCanvas.style.width = `${displayWidth}px`
+    gridCanvas.style.height = `${displayHeight}px`
+    gridCanvas.width = Math.floor(displayWidth * dpr)
+    gridCanvas.height = Math.floor(displayHeight * dpr)
 
     ctx.setTransform(1, 0, 0, 1, 0, 0)
-    // ctx.scale(dpr, dpr)
+    gridCtx.setTransform(1, 0, 0, 1, 0, 0)
 
     drawAll()
+    drawGrid()
   }
 
 
   onMount(() => {
     ctx = canvas.getContext('2d')!
+    gridCtx = gridCanvas.getContext('2d')!
     colors.fill(255) // all white
     // requestAnimationFrame(() => resizeCanvas())
     const resizeObserver = new ResizeObserver(() => resizeCanvas())
@@ -294,7 +323,11 @@
       on:touchstart|preventDefault={handleMouseDown}
       on:touchmove|preventDefault={handleMouseMove}
       on:touchend|preventDefault={handleMouseUp}
-      ></canvas>
+    ></canvas>
+    <canvas
+      bind:this={gridCanvas}
+      class="grid-layer"
+    ></canvas>
   </div>
   <div class="extra" />
 </div>
@@ -348,8 +381,11 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-
     object-fit: contain;
+  }
+
+  .canvas-wrapper .grid-layer {
+    pointer-events: none;
   }
 
   @media (min-aspect-ratio: 1.05/1) {
@@ -381,7 +417,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.15);
   }
 
   .users {
