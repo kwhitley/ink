@@ -90,7 +90,7 @@
     top: 0;
     left: 0;
     pointer-events: none;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    // border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   p.loading {

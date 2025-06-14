@@ -16,24 +16,27 @@ export class Board {
   private colors: Uint8ClampedArray
   private x: number
   private y: number
-  private grid: number = 1
-  private gridColor: [number, number, number, number] = [128, 128, 128, 0.2]
+  private gridWidth: number = 1
+  private gridOpacity: number = 0.8
+  private gridColor: [number, number, number] = [128, 128, 128]
   private lastPaintedIndex: number = -1
 
   constructor({ x, y, from }: { x?: number; y?: number; from?: string }) {
-    if (from) {
-      const decoded = this.decode(from)
-      this.x = decoded.x
-      this.y = decoded.y
-      this.colors = decoded.colors
-    } else if (x && y) {
-      this.x = x
-      this.y = y
-      this.colors = new Uint8ClampedArray(x * y * 3)
-      this.colors.fill(255) // Initialize with white
-    } else {
+    const decoded = from ? this.decode(from) : undefined
+    const useX = decoded?.x ?? x
+    const useY = decoded?.y ?? y
+    if (!useX || !useY) {
       throw new Error('Canvas must be initialized with either dimensions or encoded data')
     }
+
+    this.colors = decoded?.colors ?? new Uint8ClampedArray(useX * useY * 3).fill(255)
+    this.setDimensions(useX, useY)
+  }
+
+  setDimensions(x: number, y: number) {
+    this.x = x
+    this.y = y
+    this.gridOpacity = 10000 / (x * y)
   }
 
   setCanvas(canvas: HTMLCanvasElement) {
@@ -46,16 +49,6 @@ export class Board {
     this.gridCanvas = canvas
     this.gridCtx = canvas.getContext('2d')
     if (!this.gridCtx) throw new Error('Could not get 2d context for grid')
-  }
-
-  setGrid(grid: number) {
-    this.grid = grid
-    this.drawGrid()
-  }
-
-  setGridColor(color: [number, number, number, number]) {
-    this.gridColor = color
-    this.drawGrid()
   }
 
   private drawCell(index: number) {
@@ -80,13 +73,25 @@ export class Board {
     const cellHeight = this.gridCanvas.height / this.y
 
     this.gridCtx.clearRect(0, 0, this.gridCanvas.width, this.gridCanvas.height)
-    this.gridCtx.strokeStyle = `rgba(${this.gridColor.join(',')})`
-    this.gridCtx.lineWidth = this.grid
+    this.gridCtx.strokeStyle = `rgba(${this.gridColor.join(',')},${this.gridOpacity})`
+    this.gridCtx.lineWidth = this.gridWidth
 
-    for (let cx = 0; cx < this.x; cx++) {
-      for (let cy = 0; cy < this.y; cy++) {
-        this.gridCtx.strokeRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
-      }
+    // Draw vertical lines
+    for (let i = 0; i <= this.x; i++) {
+      const x = i * cellWidth
+      this.gridCtx.beginPath()
+      this.gridCtx.moveTo(x, 0)
+      this.gridCtx.lineTo(x, this.gridCanvas.height)
+      this.gridCtx.stroke()
+    }
+
+    // Draw horizontal lines
+    for (let i = 0; i <= this.y; i++) {
+      const y = i * cellHeight
+      this.gridCtx.beginPath()
+      this.gridCtx.moveTo(0, y)
+      this.gridCtx.lineTo(this.gridCanvas.width, y)
+      this.gridCtx.stroke()
     }
   }
 
