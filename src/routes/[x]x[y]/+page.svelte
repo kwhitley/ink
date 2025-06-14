@@ -7,6 +7,7 @@
   import { Board } from './Board'
   import Canvas from './Canvas.svelte'
   import ColorPicker from './ColorPicker.svelte'
+  import PlayerCount from './PlayerCount.svelte'
 
   const errorMessage = chroma.log.red.bold
   const userColor = chroma.salmon.bold
@@ -18,7 +19,7 @@
   let fetched = false
   let channel: IttySocket | undefined = undefined
   let requested: boolean = false
-  let rgba = persistable('ink:rgba', { r: 0, g: 0, b: 0, a: 1 })
+  let rgba = persistable('ink:rgba', { r: 0, g: 0, b: 0, a: 0.4 })
   let isColorPickerOpen = false
   let channelUsers: number = 0
   let horizontal = false
@@ -114,6 +115,7 @@
 <div class="grid" class:horizontal>
   <div class="color-picker">
     <ColorPicker bind:rgb={$rgba} bind:isOpen={isColorPickerOpen} />
+    <PlayerCount players={channelUsers} />
   </div>
   <div class="canvas-wrapper">
     <Canvas
@@ -123,9 +125,6 @@
       onPaint={(painted) => painted && channel?.send(painted)}
     />
   </div>
-</div>
-<div class="users" class:plural={channelUsers > 1}>
-  {channelUsers}
 </div>
 
 <!-- STYLES -->
@@ -171,32 +170,6 @@
       justify-content: flex-start;
       flex: 0 0 7rem;
       white-space: nowrap;
-    }
-  }
-
-  .users {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    padding: 1rem;
-    font-size: 3rem;
-    opacity: 0.15;
-    display: flex;
-    flex-flow: column;
-    align-items: center;
-    justify-content: center;
-    line-height: 0.8em;
-    pointer-events: none;
-
-    &:after {
-      content: 'player';
-      display: block;
-      font-size: 0.3em;
-      line-height: 1;
-    }
-
-    &.plural:after {
-      content: 'players';
     }
   }
 </style>
