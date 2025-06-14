@@ -39,7 +39,7 @@
     type StateMessage = { type: 'state', data: string }
     type PaintMessage = { type: 'paint', data: [number, number, number, number] }
 
-    channel = connect(`art-tag:${x}x${y}`, { announce: true })
+    channel = connect(`https://itty.af/ink/${x}x${y}`, { announce: true })
       .on('message', ({ message }) => console.log)
       .on<PaintMessage>('message', ({ message }) =>
         message.type === 'paint' && board.paint(...message.data, 1)
@@ -104,6 +104,13 @@
   })
 </script>
 
+<!-- HEAD -->
+<svelte:head>
+  <title>ink : {x}x{y} ({channelUsers} players)</title>
+  <meta name="description" content="An ink board for {x}x{y} cells." />
+</svelte:head>
+
+<!-- MARKUP -->
 <div class="grid" class:horizontal>
   <div class="color-picker">
     <ColorPicker bind:rgb={$rgba} bind:isOpen={isColorPickerOpen} />
@@ -121,6 +128,7 @@
   {channelUsers}
 </div>
 
+<!-- STYLES -->
 <style>
   .grid {
     height: 100vh;

@@ -43,7 +43,7 @@
   })
 </script>
 
-<!-- MARKDOWN -->
+<!-- MARKUP -->
 <svelte:window on:resize={handleResize} />
 
 <section>
