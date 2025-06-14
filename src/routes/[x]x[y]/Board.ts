@@ -19,7 +19,6 @@ export class Board {
   private grid: number = 1
   private gridColor: [number, number, number, number] = [128, 128, 128, 0.2]
   private lastPaintedIndex: number = -1
-  logging: boolean = false
 
   constructor({ x, y, from }: { x?: number; y?: number; from?: string }) {
     if (from) {
@@ -27,13 +26,11 @@ export class Board {
       this.x = decoded.x
       this.y = decoded.y
       this.colors = decoded.colors
-      if (this.logging) console.log('Created Board from encoded data:', { x: this.x, y: this.y, colors: this.colors })
     } else if (x && y) {
       this.x = x
       this.y = y
       this.colors = new Uint8ClampedArray(x * y * 3)
       this.colors.fill(255) // Initialize with white
-      if (this.logging) console.log('Created Board with dimensions:', { x: this.x, y: this.y, colors: this.colors })
     } else {
       throw new Error('Canvas must be initialized with either dimensions or encoded data')
     }
@@ -63,8 +60,7 @@ export class Board {
 
   private drawCell(index: number) {
     if (!this.canvas || !this.ctx) {
-      if (this.logging) console.warn('Cannot draw cell: canvas or context not initialized')
-      return
+      return console.warn('Cannot draw cell: canvas or context not initialized')
     }
     const cellWidth = this.canvas.width / this.x
     const cellHeight = this.canvas.height / this.y
@@ -77,15 +73,8 @@ export class Board {
 
   drawGrid() {
     if (!this.gridCanvas || !this.gridCtx) {
-      if (this.logging) console.warn('Cannot draw grid: grid canvas or context not initialized')
-      return
+      return console.warn('Cannot draw grid: grid canvas or context not initialized')
     }
-    if (this.logging) console.log('Drawing grid with dimensions:', {
-      width: this.gridCanvas.width,
-      height: this.gridCanvas.height,
-      x: this.x,
-      y: this.y
-    })
 
     const cellWidth = this.gridCanvas.width / this.x
     const cellHeight = this.gridCanvas.height / this.y
@@ -103,25 +92,16 @@ export class Board {
 
   drawAll() {
     if (!this.canvas || !this.ctx) {
-      if (this.logging) console.warn('Cannot draw all: canvas or context not initialized')
-      return
+      return console.warn('Cannot draw all: canvas or context not initialized')
     }
-    if (this.logging) console.log('Drawing all cells with dimensions:', {
-      width: this.canvas.width,
-      height: this.canvas.height,
-      x: this.x,
-      y: this.y
-    })
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
     for (let i = 0; i < this.x * this.y; i++) this.drawCell(i)
   }
 
   resize(width: number, height: number, dpr: number = window.devicePixelRatio || 1) {
     if (!this.canvas || !this.gridCanvas || !this.ctx || !this.gridCtx) {
-      if (this.logging) console.warn('Cannot resize: canvas or context not initialized')
       return
     }
-    if (this.logging) console.log('Resizing canvas with dimensions:', { width, height, dpr })
 
     const rawCellWidth = width / this.x
     const rawCellHeight = height / this.y

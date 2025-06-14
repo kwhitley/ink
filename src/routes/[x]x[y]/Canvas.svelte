@@ -1,33 +1,31 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { type Board } from './Board'
-  import { createEventDispatcher } from 'svelte'
-  import type { PaintedAction } from './Board'
+  import { onMount } from 'svelte';
+  import type { PaintedAction } from './Board';
+  import { type Board } from './Board';
 
-  let {
-    board,
-    isColorPickerOpen,
-    rgba,
-    onPaint,
-  }: {
+  type Props = {
     board: Board,
     isColorPickerOpen: boolean
     rgba: { r: number, g: number, b: number, a: number },
     onPaint?: (painted: PaintedAction) => void
-  } = $props()
+  }
+
+  let { board, isColorPickerOpen, rgba, onPaint }: Props = $props()
+  let isLoaded = $state(false)
 
   let canvas: HTMLCanvasElement
   let gridCanvas: HTMLCanvasElement
 
   const handleResize = () => {
+    isLoaded = true
     board.resize(window.innerWidth, window.innerHeight)
   }
 
-  const handleMouseMove = (e: MouseEvent & TouchEvent) => {
-    if (isColorPickerOpen || e.buttons !== 1) return
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (isColorPickerOpen || (e as MouseEvent).buttons !== 1 && !(e instanceof TouchEvent)) return
     const rect = canvas.getBoundingClientRect()
-    const px = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left
-    const py = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top
+    const px = ((e as TouchEvent).touches?.[0]?.clientX ?? (e as MouseEvent).clientX) - rect.left
+    const py = ((e as TouchEvent).touches?.[0]?.clientY ?? (e as MouseEvent).clientY) - rect.top
     const index = board.getIndexFromCoords(px, py)
 
     if (index === -1) return
@@ -45,30 +43,33 @@
   })
 </script>
 
+<!-- MARKDOWN -->
+<svelte:window on:resize={handleResize} />
+
 <section>
-<canvas
-  class="canvas"
-  bind:this={canvas}
-  on:resize={handleResize}
-  on:mousemove={handleMouseMove}
-  on:mousedown={handleMouseMove}
-  on:touchstart|preventDefault={handleMouseMove}
-  on:touchmove|preventDefault={handleMouseMove}
-  >
-</canvas>
-<canvas class="grid-layer" bind:this={gridCanvas}></canvas>
+  <canvas
+    class="canvas"
+    class:isLoaded
+    bind:this={canvas}
+    onmousemove={handleMouseMove}
+    onmousedown={handleMouseMove}
+    ontouchstart={handleMouseMove}
+    ontouchmove={handleMouseMove}
+    >
+  </canvas>
+  <canvas
+    class="grid-layer"
+    class:isLoaded
+    bind:this={gridCanvas}>
+  </canvas>
+
+  <p class="loading" class:isLoaded>
+    loading ink...
+  </p>
 </section>
 
-  <!-- <canvas
-      bind:this={canvas}
-      on:resize={handleResize}
-      on:mousemove={handleMouseMove}
-      on:mousedown={handleMouseMove}
-      on:touchstart|preventDefault={handleMouseMove}
-      on:touchmove|preventDefault={handleMouseMove}
-    ></canvas> -->
-
-<style>
+<!-- STYLES -->
+<style lang="scss">
   section {
     position: relative;
   }
@@ -76,11 +77,12 @@
   canvas {
     width: 100%;
     height: 100%;
-    /* background-color: #000;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1; */
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+
+    &.isLoaded {
+      opacity: 1;
+    }
   }
 
   .grid-layer {
@@ -88,5 +90,28 @@
     top: 0;
     left: 0;
     pointer-events: none;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  p.loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.1;
+    font-size: 3rem;
+    font-weight: 200;
+    letter-spacing: -0.04em;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+
+    &.isLoaded {
+      opacity: 0;
+    }
   }
 </style>

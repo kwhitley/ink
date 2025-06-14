@@ -52,7 +52,7 @@
           board.import(message.data)
           fetched = true
           const end = performance.now()
-          chroma.log('✅ complete board retrieval', timeColor, `${round(end - fetchStart, 1)}ms`)
+          chroma.log('✅ complete board retrieval @', timeColor, `${round(end - fetchStart, 1)}ms`)
         }
       })
       .on<RequestStateMessage>('message', ({ message, uid }) => {
@@ -86,7 +86,7 @@
         console.log('channel closed')
       })
       .on('open', () => {
-        chroma.log('channel opened', timeColor, `${round(performance.now() - fetchStart, 1)}ms`)
+        chroma.log('channel opened @', timeColor, `${round(performance.now() - fetchStart, 1)}ms`)
       })
       .on('error', (error) => {
         errorMessage('channel error', error)
@@ -128,7 +128,6 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    flex-wrap: wrap;
   }
 
   .color-picker {
