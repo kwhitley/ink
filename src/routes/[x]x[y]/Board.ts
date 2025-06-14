@@ -1,15 +1,9 @@
-import { deflate, inflate } from 'pako'
+import { formatSize } from '$lib/format'
 import { chroma } from 'itty-chroma'
-const { blue } = chroma
+import { deflate, inflate } from 'pako'
+import { round } from 'supergeneric/round'
 
-const formatSize = (size: number) => {
-  if (size < 1024) return `${size} bytes`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)}KB`
-  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)}MB`
-  return `${(size / 1024 / 1024 / 1024).toFixed(1)}GB`
-}
-
-type PaintedAction = {
+export type PaintedAction = {
   type: 'paint'
   data: [number, number, number, number]
 }
@@ -176,16 +170,20 @@ export class Board {
     }
   }
 
-  // TODO: use a better compression algorithm
-
   encode(): string {
     const start = performance.now()
-    const deflated = deflate(this.colors)
+    // Create a buffer to hold dimensions and colors
+    const buffer = new Uint8Array(8 + this.colors.length)
+    // Store dimensions as 32-bit integers
+    new DataView(buffer.buffer).setInt32(0, this.x, true)
+    new DataView(buffer.buffer).setInt32(4, this.y, true)
+    // Copy colors after dimensions
+    buffer.set(this.colors, 8)
+    const deflated = deflate(buffer)
     const base64 = btoa(String.fromCharCode(...deflated))
-    // console.log('encoded', base64, deflated.length, this.colors.length)
 
     const end = performance.now()
-    chroma.log('encoded board -->', formatSize(base64.length), chroma.blue, `${Math.round((end - start) * 1000) / 1000}ms`)
+    chroma.log('💱 encoded board', chroma.grey.italic, `(${formatSize(base64.length)})`, chroma.blue, `${round(end - start, 1)}ms`)
     return base64
   }
 
@@ -193,11 +191,13 @@ export class Board {
     const start = performance.now()
     const bin = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
     const inflated = inflate(bin)
-    const colors = new Uint8ClampedArray(inflated)
-    const x = Math.sqrt(colors.length / 3)
-    const y = x
+    // Read dimensions from the first 8 bytes
+    const x = new DataView(inflated.buffer).getInt32(0, true)
+    const y = new DataView(inflated.buffer).getInt32(4, true)
+    // Get colors from the remaining bytes
+    const colors = new Uint8ClampedArray(inflated.slice(8))
     const end = performance.now()
-    chroma.log('decoded board <--', formatSize(base64.length), blue, `${Math.round((end - start) * 1000) / 1000}ms`)
+    chroma.log('💱 decoded board', chroma.grey.italic,`(${formatSize(base64.length)})`, chroma.blue, `${round(end - start, 1)}ms`)
     return { x, y, colors }
   }
 

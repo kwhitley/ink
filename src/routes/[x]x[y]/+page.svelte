@@ -1,36 +1,28 @@
 <script lang="ts">
-  import { persistable } from '$lib/persistable';
-  import { chroma } from 'itty-chroma';
-  import { connect, type IttySocket } from 'itty-sockets';
-  import { onMount } from 'svelte';
-  import { Board } from './Board';
-  import ColorPicker from './ColorPicker.svelte';
+  import { persistable } from '$lib/persistable'
+  import { chroma } from 'itty-chroma'
+  import { connect, type IttySocket } from 'itty-sockets'
+  import { round } from 'supergeneric/round'
+  import { onMount } from 'svelte'
+  import { Board } from './Board'
+  import Canvas from './Canvas.svelte'
+  import ColorPicker from './ColorPicker.svelte'
 
   const errorMessage = chroma.log.red.bold
   const userColor = chroma.salmon.bold
-
-  const formatSize = (size: number) => {
-    if (size < 1024) return `${size}B`
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)}KB`
-    if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)}MB`
-    return `${(size / 1024 / 1024 / 1024).toFixed(1)}GB`
-  }
+  const timeColor = chroma.blue
 
   export let data
-  let { x, y } = data
-  let paintColor: [number, number, number, number] = [0, 0, 0, 1]
-  let canvas: HTMLCanvasElement
-  let gridCanvas: HTMLCanvasElement
+  const { x, y } = data
+  const board = new Board({ x, y })
   let fetched = false
   let channel: IttySocket | undefined = undefined
   let requested: boolean = false
   let rgba = persistable('ink:rgba', { r: 0, g: 0, b: 0, a: 1 })
   let isColorPickerOpen = false
   let channelUsers: number = 0
-  $: ratio = x / y
   let horizontal = false
 
-  $: board = new Board({ x, y })
   $: {
     if (typeof window !== 'undefined') {
       // @ts-ignore
@@ -38,48 +30,21 @@
     }
   }
 
-  const handleMouseMove = (e: MouseEvent & TouchEvent) => {
-    if (isColorPickerOpen || e.buttons !== 1) return
-    const rect = canvas.getBoundingClientRect()
-    const px = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left
-    const py = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top
-    const index = board.getIndexFromCoords(px, py)
-
-    if (index === -1) return
-    const painted = board.paint(index, $rgba.r, $rgba.g, $rgba.b, $rgba.a)
-    if (painted) channel?.send(painted)
-  }
-
-  const setPaintColor = (r: number, g: number, b: number, a: number = 1) => {
-    paintColor = [r, g, b, a]
-  }
-
-  $: {
-    if ($rgba) {
-      setPaintColor($rgba.r, $rgba.g, $rgba.b, $rgba.a)
-    }
-  }
-
-  const handleResize = () => {
-    board.resize(window.innerWidth, window.innerHeight)
-  }
-
   onMount(() => {
-    const resizeObserver = new ResizeObserver(handleResize)
-    resizeObserver.observe(canvas.parentElement!)
     let indexChannel = connect('ink:index')
+    let fetchStart: number = performance.now()
 
-    board.setCanvas(canvas)
-    board.setGridCanvas(gridCanvas)
-
-    let fetchStart: number = 0
+    type WelcomeMessage = { type: 'ready-to-send', uid: string }
+    type RequestStateMessage = { type: 'request-state', uid: string }
+    type StateMessage = { type: 'state', data: string }
+    type PaintMessage = { type: 'paint', data: [number, number, number, number] }
 
     channel = connect(`art-tag:${x}x${y}`, { announce: true })
       .on('message', ({ message }) => console.log)
-      .on<{ type: 'paint', data: [number, number, number, number] }>('message', ({ message }) =>
+      .on<PaintMessage>('message', ({ message }) =>
         message.type === 'paint' && board.paint(...message.data, 1)
       )
-      .on<{ type: 'state', data: string }>('message', ({ message, uid }) => {
+      .on<StateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'state') return
         chroma.log('😘 received state from', userColor, uid)
         if (!fetched) {
@@ -87,21 +52,21 @@
           board.import(message.data)
           fetched = true
           const end = performance.now()
-          chroma.log('✅ complete board retrieval', chroma.blue, `${Math.round((end - fetchStart) * 1000) / 1000}ms`)
+          chroma.log('✅ complete board retrieval', timeColor, `${round(end - fetchStart, 1)}ms`)
         }
       })
-      .on<{ type: 'request-state' }>('message', ({ message, uid }) => {
+      .on<RequestStateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'request-state') return
-        console.log('user', uid, 'requested state, sending...')
+        chroma.log('🙏 user', userColor, uid, chroma.clear, 'requested state, sending...')
         channel?.send({ type: 'state', data: board.encode() }, uid)
       })
-      .on<{ type: 'ready-to-send' }>('message', ({ message, uid }) => {
+      .on<WelcomeMessage>('message', ({ message, uid }) => {
         if (message.type !== 'ready-to-send') return
         chroma.log('🫡', userColor, uid, chroma.clear,'is ready to send')
-        if (requested)  return
+        if (requested) return
+        requested = true // prevent duplicate requests
+        // fetchStart = performance.now() // track entire round trip for state retrieval
         chroma.log('🙏 requesting state from', userColor, uid)
-        requested = true
-        fetchStart = performance.now()
         channel?.send({ type: 'request-state' }, uid)
       })
       .on('join', ({ uid, users }) => {
@@ -112,7 +77,7 @@
             channel?.send({ type: 'ready-to-send' }, uid)
           }
         } else {
-          console.log('😈 no other users, we control this board.')
+          chroma.log('😈 no other users, we control this board.')
           fetched = true
         }
       })
@@ -120,17 +85,16 @@
       .on('close', () => {
         console.log('channel closed')
       })
+      .on('open', () => {
+        chroma.log('channel opened', timeColor, `${round(performance.now() - fetchStart, 1)}ms`)
+      })
       .on('error', (error) => {
         errorMessage('channel error', error)
       })
 
-    if (typeof window !== 'undefined')
-      // @ts-ignore
-      window.setColor = setPaintColor
-
     let heartbeat = setInterval(() => {
       indexChannel?.send([`${x}x${y}`, channelUsers])
-    }, 500)
+    }, 2000)
 
     return () => {
       channel?.close()
@@ -140,35 +104,22 @@
   })
 </script>
 
-<svelte:window
-  on:resize={handleResize}
-  on:mousemove={handleMouseMove}
-  on:mousedown={handleMouseMove}
-  />
-
 <div class="grid" class:horizontal>
-  <div class="extra" />
   <div class="color-picker">
     <ColorPicker bind:rgb={$rgba} bind:isOpen={isColorPickerOpen} />
   </div>
   <div class="canvas-wrapper">
-    <canvas
-      bind:this={canvas}
-      on:mousemove={handleMouseMove}
-      on:touchstart|preventDefault={handleMouseMove}
-      on:touchmove|preventDefault={handleMouseMove}
-    ></canvas>
-    <canvas
-      bind:this={gridCanvas}
-      class="grid-layer"
-    ></canvas>
+    <Canvas
+      board={board}
+      isColorPickerOpen={isColorPickerOpen}
+      rgba={$rgba}
+      onPaint={(painted) => painted && channel?.send(painted)}
+    />
   </div>
-  <div class="extra" />
 </div>
 <div class="users" class:plural={channelUsers > 1}>
   {channelUsers}
 </div>
-
 
 <style>
   .grid {
@@ -200,18 +151,6 @@
     flex: 5;
   }
 
-  .canvas-wrapper canvas {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    object-fit: contain;
-  }
-
-  .canvas-wrapper .grid-layer {
-    pointer-events: none;
-  }
-
   @media (min-aspect-ratio: 1.05/1) {
     .grid {
       flex-direction: row-reverse;
@@ -226,19 +165,6 @@
       flex: 0 0 7rem;
       white-space: nowrap;
     }
-
-    canvas {
-      margin-left: auto;
-      margin-right: auto;
-      margin-left: auto;
-    }
-  }
-
-  .grid canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.15);
   }
 
   .users {
@@ -266,6 +192,4 @@
       content: 'players';
     }
   }
-
-
 </style>

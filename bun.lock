@@ -7,6 +7,7 @@
         "itty-chroma": "^1.0.0",
         "itty-sockets": "^0.3.5",
         "pako": "^2.1.0",
+        "supergeneric": "^3.0.1",
       },
       "devDependencies": {
         "@eslint/compat": "^1.2.5",
@@ -478,6 +479,8 @@
     "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
 
     "strip-json-comments": ["strip-json-comments@3.1.1", "", {}, "sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig=="],
+
+    "supergeneric": ["supergeneric@3.0.1", "", {}, "sha512-w0ZR0D6shvPy0atAar+opD/1DmojnSqeUr1Iy0SZXbZ3L6jveoj/EkEXxk0GgPS+Kup1GGvjtNV8t2rJryMtmQ=="],
 
     "supports-color": ["supports-color@8.1.1", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q=="],
 

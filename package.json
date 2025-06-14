@@ -34,6 +34,7 @@
 	"dependencies": {
 		"itty-chroma": "^1.0.0",
 		"itty-sockets": "^0.3.5",
-		"pako": "^2.1.0"
+		"pako": "^2.1.0",
+		"supergeneric": "^3.0.1"
 	}
 }

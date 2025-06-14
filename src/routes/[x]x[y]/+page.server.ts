@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit'
 
 export function load({ params }) {
-  let x = Number(params.x)
-  let y = Number(params.y)
+  const x = Number(params.x)
+  const y = Number(params.y)
 
   if (isNaN(x) || isNaN(y)) {
     console.log("Invalid coordinates")
