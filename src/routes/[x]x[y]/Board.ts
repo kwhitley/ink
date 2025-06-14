@@ -1,0 +1,242 @@
+import { deflate, inflate } from 'pako'
+import { chroma } from 'itty-chroma'
+const { blue } = chroma
+
+const formatSize = (size: number) => {
+  if (size < 1024) return `${size} bytes`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)}KB`
+  if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)}MB`
+  return `${(size / 1024 / 1024 / 1024).toFixed(1)}GB`
+}
+
+type PaintedAction = {
+  type: 'paint'
+  data: [number, number, number, number]
+}
+
+export class Board {
+  private canvas: HTMLCanvasElement | null = null
+  private gridCanvas: HTMLCanvasElement | null = null
+  private ctx: CanvasRenderingContext2D | null = null
+  private gridCtx: CanvasRenderingContext2D | null = null
+  private colors: Uint8ClampedArray
+  private x: number
+  private y: number
+  private grid: number = 1
+  private gridColor: [number, number, number, number] = [128, 128, 128, 0.2]
+  private lastPaintedIndex: number = -1
+  logging: boolean = false
+
+  constructor({ x, y, from }: { x?: number; y?: number; from?: string }) {
+    if (from) {
+      const decoded = this.decode(from)
+      this.x = decoded.x
+      this.y = decoded.y
+      this.colors = decoded.colors
+      if (this.logging) console.log('Created Board from encoded data:', { x: this.x, y: this.y, colors: this.colors })
+    } else if (x && y) {
+      this.x = x
+      this.y = y
+      this.colors = new Uint8ClampedArray(x * y * 3)
+      this.colors.fill(255) // Initialize with white
+      if (this.logging) console.log('Created Board with dimensions:', { x: this.x, y: this.y, colors: this.colors })
+    } else {
+      throw new Error('Canvas must be initialized with either dimensions or encoded data')
+    }
+  }
+
+  setCanvas(canvas: HTMLCanvasElement) {
+    this.canvas = canvas
+    this.ctx = canvas.getContext('2d')
+    if (!this.ctx) throw new Error('Could not get 2d context')
+  }
+
+  setGridCanvas(canvas: HTMLCanvasElement) {
+    this.gridCanvas = canvas
+    this.gridCtx = canvas.getContext('2d')
+    if (!this.gridCtx) throw new Error('Could not get 2d context for grid')
+  }
+
+  setGrid(grid: number) {
+    this.grid = grid
+    this.drawGrid()
+  }
+
+  setGridColor(color: [number, number, number, number]) {
+    this.gridColor = color
+    this.drawGrid()
+  }
+
+  private drawCell(index: number) {
+    if (!this.canvas || !this.ctx) {
+      if (this.logging) console.warn('Cannot draw cell: canvas or context not initialized')
+      return
+    }
+    const cellWidth = this.canvas.width / this.x
+    const cellHeight = this.canvas.height / this.y
+    const cx = index % this.x
+    const cy = Math.floor(index / this.x)
+    const i = index * 3
+    this.ctx.fillStyle = `rgb(${this.colors[i]},${this.colors[i + 1]},${this.colors[i + 2]})`
+    this.ctx.fillRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
+  }
+
+  drawGrid() {
+    if (!this.gridCanvas || !this.gridCtx) {
+      if (this.logging) console.warn('Cannot draw grid: grid canvas or context not initialized')
+      return
+    }
+    if (this.logging) console.log('Drawing grid with dimensions:', {
+      width: this.gridCanvas.width,
+      height: this.gridCanvas.height,
+      x: this.x,
+      y: this.y
+    })
+
+    const cellWidth = this.gridCanvas.width / this.x
+    const cellHeight = this.gridCanvas.height / this.y
+
+    this.gridCtx.clearRect(0, 0, this.gridCanvas.width, this.gridCanvas.height)
+    this.gridCtx.strokeStyle = `rgba(${this.gridColor.join(',')})`
+    this.gridCtx.lineWidth = this.grid
+
+    for (let cx = 0; cx < this.x; cx++) {
+      for (let cy = 0; cy < this.y; cy++) {
+        this.gridCtx.strokeRect(cx * cellWidth, cy * cellHeight, cellWidth, cellHeight)
+      }
+    }
+  }
+
+  drawAll() {
+    if (!this.canvas || !this.ctx) {
+      if (this.logging) console.warn('Cannot draw all: canvas or context not initialized')
+      return
+    }
+    if (this.logging) console.log('Drawing all cells with dimensions:', {
+      width: this.canvas.width,
+      height: this.canvas.height,
+      x: this.x,
+      y: this.y
+    })
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    for (let i = 0; i < this.x * this.y; i++) this.drawCell(i)
+  }
+
+  resize(width: number, height: number, dpr: number = window.devicePixelRatio || 1) {
+    if (!this.canvas || !this.gridCanvas || !this.ctx || !this.gridCtx) {
+      if (this.logging) console.warn('Cannot resize: canvas or context not initialized')
+      return
+    }
+    if (this.logging) console.log('Resizing canvas with dimensions:', { width, height, dpr })
+
+    const rawCellWidth = width / this.x
+    const rawCellHeight = height / this.y
+    const fillByWidth = rawCellWidth < rawCellHeight
+    const cellSize = Math.floor(fillByWidth ? rawCellWidth : rawCellHeight)
+    const displayWidth = cellSize * this.x
+    const displayHeight = cellSize * this.y
+
+    this.canvas.style.width = `${displayWidth}px`
+    this.canvas.style.height = `${displayHeight}px`
+    this.canvas.width = Math.floor(displayWidth * dpr)
+    this.canvas.height = Math.floor(displayHeight * dpr)
+
+    this.gridCanvas.style.width = `${displayWidth}px`
+    this.gridCanvas.style.height = `${displayHeight}px`
+    this.gridCanvas.width = Math.floor(displayWidth * dpr)
+    this.gridCanvas.height = Math.floor(displayHeight * dpr)
+
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+    this.gridCtx.setTransform(1, 0, 0, 1, 0, 0)
+
+    this.drawAll()
+    this.drawGrid()
+  }
+
+  paint(index: number, r: number, g: number, b: number, a: number = 1): PaintedAction | void {
+    const i = index * 3, c = this.colors
+    if (c[i] === r && c[i + 1] === g && c[i + 2] === b) return
+    if (this.lastPaintedIndex === index) return
+    this.lastPaintedIndex = index
+
+    // Alpha blend: new over old
+    c[i] = Math.round(r * a + c[i] * (1 - a))
+    c[i + 1] = Math.round(g * a + c[i + 1] * (1 - a))
+    c[i + 2] = Math.round(b * a + c[i + 2] * (1 - a))
+    this.drawCell(index)
+    return { type: 'paint', data: [index, c[i], c[i + 1], c[i + 2]] }
+  }
+
+  getColor(index: number) {
+    const i = index * 3
+    return {
+      r: this.colors[i],
+      g: this.colors[i + 1],
+      b: this.colors[i + 2],
+    }
+  }
+
+  // TODO: use a better compression algorithm
+
+  encode(): string {
+    const start = performance.now()
+    const deflated = deflate(this.colors)
+    const base64 = btoa(String.fromCharCode(...deflated))
+    // console.log('encoded', base64, deflated.length, this.colors.length)
+
+    const end = performance.now()
+    chroma.log('encoded board -->', formatSize(base64.length), chroma.blue, `${Math.round((end - start) * 1000) / 1000}ms`)
+    return base64
+  }
+
+  decode(base64: string) {
+    const start = performance.now()
+    const bin = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+    const inflated = inflate(bin)
+    const colors = new Uint8ClampedArray(inflated)
+    const x = Math.sqrt(colors.length / 3)
+    const y = x
+    const end = performance.now()
+    chroma.log('decoded board <--', formatSize(base64.length), blue, `${Math.round((end - start) * 1000) / 1000}ms`)
+    return { x, y, colors }
+  }
+
+  import(base64: string) {
+    const decoded = this.decode(base64)
+    this.colors = decoded.colors
+    this.x = decoded.x
+    this.y = decoded.y
+    this.drawAll()
+    this.drawGrid()
+  }
+
+  getIndexFromCoords(px: number, py: number): number {
+    if (!this.canvas) return -1
+    const rect = this.canvas.getBoundingClientRect()
+    const scaleX = this.canvas.width / rect.width
+    const scaleY = this.canvas.height / rect.height
+
+    const localX = px * scaleX
+    const localY = py * scaleY
+
+    const cellWidth = this.canvas.width / this.x
+    const cellHeight = this.canvas.height / this.y
+
+    const cx = Math.floor(localX / cellWidth)
+    const cy = Math.floor(localY / cellHeight)
+
+    if (cx < 0 || cx >= this.x || cy < 0 || cy >= this.y) return -1
+
+    return cy * this.x + cx
+  }
+
+  getState(): string {
+    return this.encode()
+  }
+
+  setState(base64: string) {
+    const decoded = this.decode(base64)
+    this.colors = decoded.colors
+    this.drawAll()
+  }
+}
