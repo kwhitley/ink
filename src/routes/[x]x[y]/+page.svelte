@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { persistable } from '$lib/persistable'
   import { chroma } from 'itty-chroma'
   import { connect, type IttySocket } from 'itty-sockets'
   import { round } from 'supergeneric/round'
@@ -9,27 +8,25 @@
   import ColorPicker from './ColorPicker.svelte'
   import PlayerCount from './PlayerCount.svelte'
 
-  const errorMessage = chroma.log.red.bold
-  const userColor = chroma.salmon.bold
-  const timeColor = chroma.blue
+  const USER_COLOR = chroma.salmon.bold
+  const TIME_COLOR = chroma.blue
 
-  export let data
+  // page properties
+  type PageProps = { data: { x: number, y: number } }
+  let { data }: PageProps = $props()
   const { x, y } = data
-  const board = new Board({ x, y })
-  let fetched = false
-  let channel: IttySocket | undefined = undefined
-  let requested: boolean = false
-  let rgba = persistable('ink:rgba', { r: 0, g: 0, b: 0, a: 0.4 })
-  let isColorPickerOpen = false
-  let channelUsers: number = 0
-  let horizontal = false
 
-  $: {
-    if (typeof window !== 'undefined') {
-      // @ts-ignore
-      window.board = board
-    }
-  }
+  // state
+  let fetched = $state(false)
+  let channel: IttySocket | undefined = $state(undefined)
+  let requested: boolean = $state(false)
+  let rgba = $state({ r: 0, g: 0, b: 0, a: 0.4 })
+  let isColorPickerOpen = $state(false)
+  let channelUsers: number = $state(0)
+  let horizontal = $state(false)
+
+  // create game board
+  const board = new Board({ x, y })
 
   onMount(() => {
     let indexChannel = connect('ink:index')
@@ -47,34 +44,34 @@
       )
       .on<StateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'state') return
-        chroma.log('😘 received state from', userColor, uid)
+        chroma.log('😘 received state from', USER_COLOR, uid)
         if (!fetched) {
           const start = performance.now()
           board.import(message.data)
           fetched = true
           const end = performance.now()
-          chroma.log('✅ complete board retrieval @', timeColor, `${round(end - fetchStart, 1)}ms`)
+          chroma.log('✅ complete board retrieval @', TIME_COLOR, `${round(end - fetchStart, 1)}ms`)
         }
       })
       .on<RequestStateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'request-state') return
-        chroma.log('🙏 user', userColor, uid, chroma.clear, 'requested state, sending...')
+        chroma.log('🙏 user', USER_COLOR, uid, chroma.clear, 'requested state, sending...')
         channel?.send({ type: 'state', data: board.encode() }, uid)
       })
       .on<WelcomeMessage>('message', ({ message, uid }) => {
         if (message.type !== 'ready-to-send') return
-        chroma.log('🫡', userColor, uid, chroma.clear,'is ready to send')
+        chroma.log('🫡', USER_COLOR, uid, chroma.clear,'is ready to send')
         if (requested) return
         requested = true // prevent duplicate requests
         // fetchStart = performance.now() // track entire round trip for state retrieval
-        chroma.log('🙏 requesting state from', userColor, uid)
+        chroma.log('🙏 requesting state from', USER_COLOR, uid)
         channel?.send({ type: 'request-state' }, uid)
       })
       .on('join', ({ uid, users }) => {
         channelUsers = users
         if (users > 1) {
           if (fetched) {
-            chroma.log('👋 welcoming new user', userColor, uid)
+            chroma.log('👋 welcoming new user', USER_COLOR, uid)
             channel?.send({ type: 'ready-to-send' }, uid)
           }
         } else {
@@ -87,10 +84,10 @@
         console.log('channel closed')
       })
       .on('open', () => {
-        chroma.log('channel opened @', timeColor, `${round(performance.now() - fetchStart, 1)}ms`)
+        chroma.log('channel opened @', TIME_COLOR, `${round(performance.now() - fetchStart, 1)}ms`)
       })
       .on('error', (error) => {
-        errorMessage('channel error', error)
+        chroma.log.red.bold('channel error:', error)
       })
 
     let heartbeat = setInterval(() => {
@@ -114,14 +111,14 @@
 <!-- MARKUP -->
 <div class="grid" class:horizontal>
   <div class="color-picker">
-    <ColorPicker bind:rgb={$rgba} bind:isOpen={isColorPickerOpen} />
+    <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
     <PlayerCount players={channelUsers} />
   </div>
   <div class="canvas-wrapper">
     <Canvas
       board={board}
       isColorPickerOpen={isColorPickerOpen}
-      rgba={$rgba}
+      rgba={rgba}
       onPaint={(painted) => painted && channel?.send(painted)}
     />
   </div>

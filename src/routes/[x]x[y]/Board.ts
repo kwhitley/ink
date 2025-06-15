@@ -14,8 +14,8 @@ export class Board {
   private ctx: CanvasRenderingContext2D | null = null
   private gridCtx: CanvasRenderingContext2D | null = null
   private colors: Uint8ClampedArray
-  private x: number
-  private y: number
+  private x: number = 0
+  private y: number = 0
   private gridWidth: number = 1
   private gridOpacity: number = 0.8
   private gridColor: [number, number, number] = [128, 128, 128]
@@ -93,6 +93,8 @@ export class Board {
       this.gridCtx.lineTo(this.gridCanvas.width, y)
       this.gridCtx.stroke()
     }
+
+    this.gridCanvas.style.border = `1px solid rgba(0,0,0,${this.gridOpacity})`
   }
 
   drawAll() {

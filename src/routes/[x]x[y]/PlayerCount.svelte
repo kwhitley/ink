@@ -8,21 +8,20 @@
 
   $effect(() => {
     if (players !== lastPlayers) {
-      changed = true
-      direction = players > lastPlayers ? 'up' : 'down'
+
+      if (lastPlayers !== 0) {
+        changed = true
+        direction = players > lastPlayers ? 'up' : 'down'
+      }
       lastPlayers = players
-      setTimeout(() => {
-        direction = null
-      }, 10)
-      setTimeout(() => {
-        changed = false
-      }, 1000)
+      setTimeout(() => direction = null, 10)
+      setTimeout(() => changed = false, 1000)
     }
   })
 </script>
 
 <!-- MARKUP -->
-<section class="player-count">
+<section class="player-count" class:hidden={players === 0}>
   <div class="count"
     class:pulse={changed}
     class:up={direction === 'up'}
@@ -48,6 +47,11 @@
     line-height: 0.8em;
     pointer-events: none;
     z-index: 1;
+    transition: opacity 0.15s ease-out;
+
+    &.hidden {
+      opacity: 0;
+    }
   }
 
   .count {
