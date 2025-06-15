@@ -136,8 +136,8 @@ export class Board {
     this.gridCanvas.height = Math.floor(displayHeight * dpr)
 
     // Scale the context to match the device pixel ratio
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    this.gridCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    // this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    // this.gridCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     this.drawAll()
     this.drawGrid()
