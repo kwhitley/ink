@@ -78,7 +78,7 @@
     width: 100%;
     height: 100%;
     opacity: 0;
-    transition: opacity 0.1s ease-in-out;
+    // transition: opacity 0.1s ease-in-out;
 
     &.isLoaded {
       opacity: 1;
@@ -90,7 +90,6 @@
     top: 0;
     left: 0;
     pointer-events: none;
-    // border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   p.loading {

@@ -36,7 +36,7 @@ export class Board {
   setDimensions(x: number, y: number) {
     this.x = x
     this.y = y
-    this.gridOpacity = 10000 / (x * y)
+    this.gridOpacity = 5000 / (x * y)
   }
 
   setCanvas(canvas: HTMLCanvasElement) {
@@ -95,6 +95,10 @@ export class Board {
     }
 
     this.gridCanvas.style.border = `1px solid rgba(0,0,0,${this.gridOpacity})`
+    const height = this.canvas?.height ?? 1
+    const width = this.canvas?.width ?? 1
+    const opacity = Math.max(0.15, (height * width) / 500000)
+    this.gridCanvas.style.opacity = `${opacity}`
   }
 
   drawAll() {
