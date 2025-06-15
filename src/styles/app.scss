@@ -19,7 +19,7 @@ html, body {
 // PULSE
 @keyframes pulse-animation {
   0% { transform: scale(1); }
-  5% { transform: scale(1.5); }
-  50% { transform: scale(1.6); }
+  15% { transform: scale(1.5); }
+  30% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
