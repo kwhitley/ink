@@ -110,25 +110,30 @@ export class Board {
       return
     }
 
-    const rawCellWidth = width / this.x
-    const rawCellHeight = height / this.y
-    const fillByWidth = rawCellWidth < rawCellHeight
-    const cellSize = Math.floor(fillByWidth ? rawCellWidth : rawCellHeight)
-    const displayWidth = cellSize * this.x
-    const displayHeight = cellSize * this.y
+    // Calculate the scale factor to fill the container while maintaining aspect ratio
+    const containerRatio = width / height
+    const boardRatio = this.x / this.y
+    const scale = containerRatio > boardRatio ? height / this.y : width / this.x
 
+    // Calculate the display dimensions
+    const displayWidth = Math.floor(this.x * scale)
+    const displayHeight = Math.floor(this.y * scale)
+
+    // Set the display size (CSS pixels)
     this.canvas.style.width = `${displayWidth}px`
     this.canvas.style.height = `${displayHeight}px`
-    this.canvas.width = Math.floor(displayWidth * dpr)
-    this.canvas.height = Math.floor(displayHeight * dpr)
-
     this.gridCanvas.style.width = `${displayWidth}px`
     this.gridCanvas.style.height = `${displayHeight}px`
+
+    // Set the canvas resolution (physical pixels)
+    this.canvas.width = Math.floor(displayWidth * dpr)
+    this.canvas.height = Math.floor(displayHeight * dpr)
     this.gridCanvas.width = Math.floor(displayWidth * dpr)
     this.gridCanvas.height = Math.floor(displayHeight * dpr)
 
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-    this.gridCtx.setTransform(1, 0, 0, 1, 0, 0)
+    // Scale the context to match the device pixel ratio
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    this.gridCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     this.drawAll()
     this.drawGrid()
