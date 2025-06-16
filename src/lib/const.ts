@@ -1,1 +1,1 @@
-export const CHANNEL_PREFIX = 'https://itty.af/ink'
+export const CHANNEL_PREFIX = 'https://ink.itty.dev'
