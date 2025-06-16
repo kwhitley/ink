@@ -7,6 +7,7 @@
   import Canvas from './Canvas.svelte'
   import ColorPicker from './ColorPicker.svelte'
   import PlayerCount from './PlayerCount.svelte'
+  import Swatches from './Swatches.svelte'
 
   const USER_COLOR = chroma.salmon.bold
   const TIME_COLOR = chroma.blue
@@ -110,8 +111,9 @@
 
 <!-- MARKUP -->
 <div class="grid" class:horizontal>
-  <div class="color-picker">
+  <div class="controls">
     <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
+    <Swatches bind:rgba={rgba} />
     <PlayerCount players={channelUsers} />
   </div>
   <div class="canvas-wrapper">
@@ -134,8 +136,10 @@
     flex-direction: column;
   }
 
-  .color-picker {
+  .controls {
     display: flex;
+    flex-flow: row nowrap;
+    gap: 1rem;
     justify-content: center;
     align-items: flex-end;
     padding: 1rem;
@@ -160,9 +164,10 @@
       gap: 0;
     }
 
-    .color-picker {
+    .controls {
       margin-right: auto;
       white-space: auto;
+      flex-flow: column;
       align-self: flex-start;
       justify-content: flex-start;
       flex: 0 0 7rem;

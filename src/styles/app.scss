@@ -1,3 +1,8 @@
+html {
+  --alpha-grid-bg: linear-gradient(45deg, #eee 25%, #0000 25%, #0000 75%, #eee 75%) 0 0 / 10px 10px, linear-gradient(45deg, #eee 25%, #0000 25%, #0000 75%, #eee 75%) 5px 5px / 10px 10px;
+  --accent-color: #f0c;
+}
+
 html, body {
   height: 100%;
   margin: 0;
@@ -6,8 +11,6 @@ html, body {
   overscroll-behavior: none;
   touch-action: none;
   overflow: hidden;
-
-  --accent-color: #f0c;
 }
 
 * {
