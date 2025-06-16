@@ -8,6 +8,7 @@
   import ColorPicker from './ColorPicker.svelte'
   import PlayerCount from './PlayerCount.svelte'
   import Swatches from './Swatches.svelte'
+  import SavedBoards from './SavedBoards.svelte'
 
   const USER_COLOR = chroma.salmon.bold
   const TIME_COLOR = chroma.blue
@@ -23,7 +24,7 @@
   let requested: boolean = $state(false)
   let rgba = $state({ r: 0, g: 0, b: 0, a: 0.4 })
   let isColorPickerOpen = $state(false)
-  let channelUsers: number = $state(0)
+  let players: number = $state(0)
   let horizontal = $state(false)
 
   // create game board
@@ -70,7 +71,7 @@
         channel?.send({ type: 'request-state' }, uid)
       })
       .on('join', ({ uid, users }) => {
-        channelUsers = users
+        players = users
         if (users > 1) {
           if (fetched) {
             chroma.log('👋 welcoming new user', USER_COLOR, uid)
@@ -81,7 +82,7 @@
           fetched = true
         }
       })
-      .on('leave', ({ users }) => channelUsers = users)
+      .on('leave', ({ users }) => players = users)
       .on('close', () => {
         console.log('channel closed')
       })
@@ -93,7 +94,7 @@
       })
 
     let heartbeat = setInterval(() => {
-      indexChannel?.send([`${x}x${y}`, channelUsers])
+      indexChannel?.send([`${x}x${y}`, players])
     }, 2000)
 
     return () => {
@@ -106,7 +107,7 @@
 
 <!-- HEAD -->
 <svelte:head>
-  <title>ink : {x}x{y} ({channelUsers} players)</title>
+  <title>ink : {x}x{y} ({players} players)</title>
   <meta name="description" content="An ink board for {x}x{y} cells." />
 </svelte:head>
 
@@ -115,7 +116,13 @@
   <div class="controls">
     <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
     <Swatches bind:rgba={rgba} />
-    <PlayerCount players={channelUsers} />
+    <SavedBoards
+      x={x}
+      y={y}
+      board={board}
+      players={players}
+      />
+    <PlayerCount players={players} />
   </div>
   <div class="canvas-wrapper">
     <Canvas
@@ -139,10 +146,11 @@
 
   .controls {
     display: flex;
-    flex-flow: row nowrap;
-    gap: 1rem;
+    flex-flow: row wrap;
     justify-content: center;
-    align-items: flex-end;
+    gap: 1rem;
+    /* justify-content: stretch; */
+    /* align-items: flex-end; */
     padding: 1rem;
     flex: 0.2;
   }

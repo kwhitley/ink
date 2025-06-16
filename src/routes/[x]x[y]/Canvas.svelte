@@ -8,17 +8,20 @@
     isColorPickerOpen: boolean
     rgba: { r: number, g: number, b: number, a: number },
     onPaint?: (painted: PaintedAction) => void
+    loaded?: boolean
+    height?: number
+    width?: number
   }
 
-  let { board, isColorPickerOpen, rgba, onPaint }: Props = $props()
-  let isLoaded = $state(false)
+  let { board, isColorPickerOpen, rgba, onPaint, loaded, height, width }: Props = $props()
+  let isLoaded = $state(loaded ?? false)
 
   let canvas: HTMLCanvasElement
   let gridCanvas: HTMLCanvasElement
 
   const handleResize = () => {
     isLoaded = true
-    board.resize(window.innerWidth, window.innerHeight)
+    board.resize(width ?? window.innerWidth, height ?? window.innerHeight)
   }
 
   const handleMouseMove = (e: MouseEvent | TouchEvent) => {
