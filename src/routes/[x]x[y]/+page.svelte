@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CHANNEL_PREFIX } from '$lib/const'
   import { chroma } from 'itty-chroma'
   import { connect, type IttySocket } from 'itty-sockets'
   import { round } from 'supergeneric/round'
@@ -7,8 +8,8 @@
   import Canvas from './Canvas.svelte'
   import ColorPicker from './ColorPicker.svelte'
   import PlayerCount from './PlayerCount.svelte'
-  import Swatches from './Swatches.svelte'
   import SavedBoards from './SavedBoards.svelte'
+  import Swatches from './Swatches.svelte'
 
   const USER_COLOR = chroma.salmon.bold
   const TIME_COLOR = chroma.blue
@@ -33,14 +34,13 @@
   onMount(() => {
     let indexChannel = connect('ink:index')
     let fetchStart: number = performance.now()
-    window.board = board
 
     type WelcomeMessage = { type: 'ready-to-send', uid: string }
     type RequestStateMessage = { type: 'request-state', uid: string }
     type StateMessage = { type: 'state', data: string }
     type PaintMessage = { type: 'paint', data: [number, number, number, number] }
 
-    channel = connect(`https://itty.af/ink/${x}x${y}`, { announce: true })
+    channel = connect(`${CHANNEL_PREFIX}/${x}x${y}`, { announce: true })
       .on('message', ({ message }) => console.log)
       .on<PaintMessage>('message', ({ message }) =>
         message.type === 'paint' && board.paint(...message.data, 1)
