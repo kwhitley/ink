@@ -32,6 +32,7 @@
   onMount(() => {
     let indexChannel = connect('ink:index')
     let fetchStart: number = performance.now()
+    window.board = board
 
     type WelcomeMessage = { type: 'ready-to-send', uid: string }
     type RequestStateMessage = { type: 'request-state', uid: string }
