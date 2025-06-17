@@ -145,11 +145,17 @@
   @media (max-aspect-ratio: 1.05/1) {
     .saved-boards {
       flex: 1 100%;
+      width: 100%;
     }
 
     .canvas-actions {
       display: inline-flex;
       margin-right: 0.5rem;
+    }
+
+    .canvas {
+      width: 100%;
+      height: 100%;
     }
 
     .save {

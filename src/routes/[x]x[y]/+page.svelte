@@ -10,6 +10,7 @@
   import PlayerCount from './PlayerCount.svelte'
   import SavedBoards from './SavedBoards.svelte'
   import Swatches from './Swatches.svelte'
+  import RangeSlider from 'svelte-range-slider-pips'
 
   const USER_COLOR = chroma.salmon.bold
   const TIME_COLOR = chroma.blue
@@ -19,14 +20,18 @@
   let { data }: PageProps = $props()
   const { x, y } = data
 
+  type RGB = { r: number, g: number, b: number }
+  type RGBA = RGB & { a: number }
+
   // state
   let fetched = $state(false)
   let channel: IttySocket | undefined = $state(undefined)
   let requested: boolean = $state(false)
-  let rgba = $state({ r: 0, g: 0, b: 0, a: 0.4 })
   let isColorPickerOpen = $state(false)
   let players: number = $state(0)
   let horizontal = $state(false)
+  let rgba = $state<RGBA>({ r: 0, g: 0, b: 0, a: 0.4 })
+  let alpha = $state(0.4)
 
   // create game board
   const board = new Board({ x, y })
@@ -115,13 +120,30 @@
 <div class="grid" class:horizontal>
   <div class="controls">
     <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
-    <Swatches bind:rgba={rgba} />
+    <Swatches
+      bind:rgba={rgba}
+      alpha={alpha}
+      />
+    <RangeSlider
+      min={0}
+      max={1}
+      float
+      pips
+      pipstep={5}
+      formatter={(value) => ([0, 0.4, 1].includes(value)) ? (value * 100) + '%' : ''}
+      handleFormatter={v => Math.round(v * 100) + '% opacity'}
+      all="label"
+      step={0.02}
+      bind:value={alpha}
+      --
+      />
     <SavedBoards
       x={x}
       y={y}
       board={board}
       players={players}
       />
+
     <PlayerCount players={players} />
   </div>
   <div class="canvas-wrapper">
@@ -148,11 +170,17 @@
     display: flex;
     flex-flow: row wrap;
     justify-content: center;
-    gap: 1rem;
+    row-gap: 0.5rem;
+    column-gap: 1rem;
+    align-items: center;
     /* justify-content: stretch; */
     /* align-items: flex-end; */
     padding: 1rem;
     flex: 0.2;
+
+    :global(.rangeSlider) {
+      margin-bottom: 1rem;
+    }
   }
 
   .canvas-wrapper {
@@ -181,6 +209,13 @@
       justify-content: flex-start;
       flex: 0 0 7rem;
       white-space: nowrap;
+      max-height: 100%;
+      min-width: 13rem;
+      gap: 1rem;
+
+      :global(.rangeSlider) {
+        margin-bottom: 1.5rem;
+      }
     }
   }
 </style>

@@ -75,6 +75,11 @@
 <style lang="scss">
   section {
     position: relative;
+    user-select: none;
+
+    & * {
+      user-select: none;
+    }
   }
 
   canvas {

@@ -26,3 +26,37 @@ html, body {
   30% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
+
+// RANGE SLIDER
+.rangeSlider {
+  --slider-accent: #f0c;
+  --slider-accent-100: rgba(255, 0, 204, 0.6);
+  min-width: 8rem;
+
+  .rangeHandle {
+    --size: 1.1rem;
+    width: var(--size) !important;
+    height: var(--size) !important;
+  }
+
+  .rsPipVal {
+    font-size: 0.7rem;
+    letter-spacing: 0em;
+  }
+
+  .rangeFloat {
+    --float-x: calc((var(--handle-pos) * -0.6% - 20%)); /* offset the float horizontally */
+    --float-y: -10%; /* offset the float vertically */
+    font-size: 0.7rem !important;
+    padding: 0.2rem 0.4rem !important;
+
+    /* keep the float inside the container by shifting it
+       based on handle's position */
+    translate: var(--float-x) var(--float-y) 0.01px !important;
+  }
+}
+
+// COLOR PICKER
+[aria-label="color picker"] {
+  z-index: 1000 !important;
+}
