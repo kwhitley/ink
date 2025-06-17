@@ -9,9 +9,13 @@
     y: number
     board: Board
     players: number
+    isOwner: boolean
+    spectateMode: boolean
+    onLoad?: (encoded: string) => void
   }
 
-  let { x, y, board, players }: Props = $props()
+  let { x, y, board, players, onLoad, isOwner, spectateMode }: Props = $props()
+  let allowLoad = $derived((isOwner && spectateMode) || players === 1)
 
   const savedBoards = persistable<string[]>(`ink:saved-boards:${x}x${y}`, [])
 
@@ -21,9 +25,10 @@
   }
 
   const loadBoard = (encoded: string) => {
-    // if (players > 1) return
+    if (!allowLoad) return
 
     board.import(encoded)
+    onLoad?.(encoded)
   }
 
   const deleteBoard = (index: number) => {
@@ -55,8 +60,12 @@
         </button>
         <button
           class="canvas-button"
+          disabled={!allowLoad}
           onclick={() => loadBoard(board)}
           >
+          <div class="lock" class:locked={!allowLoad}>
+            cannot load with 2+ players
+          </div>
           <Canvas
             board={new Board({ from: board })}
             isColorPickerOpen={false}
@@ -98,9 +107,36 @@
     border: 1px solid #333;
     transition: transform 0.1s ease-in-out;
     cursor: pointer;
+    position: relative;
 
-    &:hover {
+    &:disabled {
+      cursor: not-allowed;
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+
+    &:not(:disabled):hover {
       transform: scale(1.1);
+    }
+  }
+
+  .lock {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: wrap;
+    padding: 0 0.5rem;
+    border-radius: 0.5rem;
+    z-index: 1;
+    color: white;
+
+    &:not(.locked) {
+      opacity: 0;
     }
   }
 

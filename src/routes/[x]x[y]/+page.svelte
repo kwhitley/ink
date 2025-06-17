@@ -32,9 +32,17 @@
   let horizontal = $state(false)
   let rgba = $state<RGBA>({ r: 0, g: 0, b: 0, a: 0.4 })
   let alpha = $state(0.4)
+  let isOwner = $state(false)
+  let spectateMode = $state(false)
+  let isSpectating = $derived(spectateMode && !isOwner)
 
   // create game board
   const board = new Board({ x, y })
+
+  const setSpectateMode = (enabled: boolean) => {
+    spectateMode = enabled
+    channel?.send({ type: 'spectate', enabled })
+  }
 
   onMount(() => {
     let indexChannel = connect('ink:index')
@@ -42,24 +50,28 @@
 
     type WelcomeMessage = { type: 'ready-to-send', uid: string }
     type RequestStateMessage = { type: 'request-state', uid: string }
-    type StateMessage = { type: 'state', data: string }
+    type StateMessage = { type: 'state', data: string, force?: boolean }
     type PaintMessage = { type: 'paint', data: [number, number, number, number] }
+    type SpectateMessage = { type: 'spectate', enabled: boolean }
 
     channel = connect(`${CHANNEL_PREFIX}/${x}x${y}`, { announce: true })
       .on('message', ({ message }) => console.log)
       .on<PaintMessage>('message', ({ message }) =>
         message.type === 'paint' && board.paint(...message.data, 1)
       )
+      .on<SpectateMessage>('message', ({ message }) => {
+        if (message.type !== 'spectate') return
+        spectateMode = message.enabled
+      })
       .on<StateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'state') return
         chroma.log('😘 received state from', USER_COLOR, uid)
-        if (!fetched) {
-          const start = performance.now()
-          board.import(message.data)
-          fetched = true
-          const end = performance.now()
-          chroma.log('✅ complete board retrieval @', TIME_COLOR, `${round(end - fetchStart, 1)}ms`)
-        }
+        if (fetched && !message.force) return
+        const start = performance.now()
+        board.import(message.data)
+        const end = performance.now()
+        !fetched && chroma.log('✅ complete board retrieval @', TIME_COLOR, `${round(end - fetchStart, 1)}ms`)
+        fetched = true
       })
       .on<RequestStateMessage>('message', ({ message, uid }) => {
         if (message.type !== 'request-state') return
@@ -77,6 +89,9 @@
       })
       .on('join', ({ uid, users }) => {
         players = users
+        if (users === 1) {
+          isOwner = true
+        }
         if (users > 1) {
           if (fetched) {
             chroma.log('👋 welcoming new user', USER_COLOR, uid)
@@ -87,7 +102,12 @@
           fetched = true
         }
       })
-      .on('leave', ({ users }) => players = users)
+      .on('leave', ({ users }) => {
+        players = users
+        if (users === 1) {
+          isOwner = true
+        }
+      })
       .on('close', () => {
         console.log('channel closed')
       })
@@ -118,34 +138,64 @@
 
 <!-- MARKUP -->
 <div class="grid" class:horizontal>
-  <div class="controls">
-    <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
-    <Swatches
-      bind:rgba={rgba}
-      alpha={alpha}
-      />
-    <RangeSlider
-      min={0}
-      max={1}
-      float
-      pips
-      pipstep={5}
-      formatter={(value) => ([0, 0.4, 1].includes(value)) ? (value * 100) + '%' : ''}
-      handleFormatter={v => Math.round(v * 100) + '% opacity'}
-      all="label"
-      step={0.02}
-      bind:value={alpha}
-      --
-      />
-    <SavedBoards
-      x={x}
-      y={y}
-      board={board}
-      players={players}
-      />
+  {#if isSpectating}
+    <div class="spectate">
+      <p>The board owner has disabled multiplayer.</p>
+      <p>Please enjoy the show!</p>
+    </div>
+  {:else}
+    <div class="controls" >
+      {#if isOwner}
+        <!-- <button onclick={() => setSpectateMode(!spectateMode)}>
+          {`Others Can Paint? ${spectateMode ? 'NO' : 'YES'}`}
+        </button> -->
+        Allow Others to Paint?
+        <input
+          type="checkbox"
+          class="toggle"
+          checked={!spectateMode}
+          on:change={() => setSpectateMode(!spectateMode)}
+          />
+      {/if}
+      <ColorPicker bind:rgb={rgba} bind:isOpen={isColorPickerOpen} />
+      <Swatches
+        bind:rgba={rgba}
+        alpha={alpha}
+        />
+      <RangeSlider
+        min={0}
+        max={1}
+        float
+        pips
+        pipstep={5}
+        formatter={(value) => ([0, 0.4, 1].includes(value)) ? (value * 100) + '%' : ''}
+        handleFormatter={v => Math.round(v * 100) + '% opacity'}
+        all="label"
+        step={0.02}
+        bind:value={alpha}
+        on:change={() => {
+          if (alpha !== rgba.a) {
+            rgba = { ...rgba, a: alpha }
+          }
+        }}
+        --
+        />
+      <SavedBoards
+        x={x}
+        y={y}
+        board={board}
+        players={players}
+        isOwner={isOwner}
+        spectateMode={spectateMode}
+        onLoad={(encoded) => {
+          if (players > 1) channel?.send({ type: 'state', force: true, data: encoded })
+        }}
+        />
 
-    <PlayerCount players={players} />
-  </div>
+      <PlayerCount players={players} />
+    </div>
+  {/if}
+
   <div class="canvas-wrapper">
     <Canvas
       board={board}
@@ -157,13 +207,32 @@
 </div>
 
 <!-- STYLES -->
-<style>
+<style lang="scss">
   .grid {
     height: 100vh;
     height: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .spectate {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 200;
+    letter-spacing: 0.05em;
+    color: #f0c;
+    color: #aaa;
+    padding: 2rem 3rem;
+    line-height: 1;
+
+    & p {
+      margin: 0 0 1rem 0;
+    }
   }
 
   .controls {
